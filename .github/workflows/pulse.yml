@@ -1,15 +1,10 @@
-name: daily pulse
+name: refresh profile
 
 on:
   schedule:
-    - cron: '23 10 * * *'   # main run
-    - cron: '41 17 * * *'   # backup run (no-op if today is already done)
+    - cron: '53 10 * * *'   # after the daily pulse in pulse-archive
+    - cron: '11 18 * * *'
   workflow_dispatch:
-    inputs:
-      force:
-        description: 'Pulse again even if today already ran'
-        type: boolean
-        default: false
   push:
     branches: [main]
     paths: ['scripts/**', '.github/workflows/**']
@@ -31,17 +26,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Daily commits (random count = random shade)
-        env:
-          FORCE: ${{ inputs.force }}
-        run: |
-          git config user.name  "Ansorjon Juraev"
-          git config user.email "145329570+TheWingTheWong@users.noreply.github.com"
-          node scripts/pulse.mjs
-          git pull --rebase -q origin main
-          git push -q origin HEAD:main
-
-      - name: Build hero, terminal and cards
+      - name: Build the screens
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/build.mjs
@@ -53,14 +38,7 @@ jobs:
           USERNAME: ${{ github.repository_owner }}
           SETTING_JSON: .github/3d-settings.json
 
-      - name: Snake
-        uses: Platane/snk/svg-only@v3
-        with:
-          github_user_name: ${{ github.repository_owner }}
-          outputs: |
-            assets/raw/snake.svg?color_snake=#ffb000&color_dots=#1a1a1a,#4a4a4a,#8a8a8a,#b9b5a9,#e6e2d6
-
-      - name: Frame snake and skyline in the void screen
+      - name: Frame skyline in the void screen
         run: |
           sudo chown -R "$(id -u):$(id -g)" . || true
           node scripts/frame.mjs

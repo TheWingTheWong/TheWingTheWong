@@ -27,5 +27,4 @@ function frame(src, out, title, caption, { scale = 1, top = 72, bottom = 40, cro
   console.log(`frame: ${out}`);
 }
 
-frame('assets/raw/snake.svg', 'assets/snake.svg', 'a snake eating the contribution calendar', 'the snake eats the calendar', { scale: 1.36, top: 64, bottom: 20, crop: [-16, -20, 880, 140] });
 frame('profile-3d-contrib/profile-custom-void.svg', 'assets/skyline.svg', '3d contribution calendar', 'skyline', { scale: 1, top: 64, bottom: 0 });

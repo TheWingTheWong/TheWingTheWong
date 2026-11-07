@@ -13,6 +13,12 @@ const RELEASES = [
     tags: 'ai  .  saas  .  typescript', open: 'formzo.ai',
   },
   {
+    id: 'raum', name: 'raum', status: 'open source', kind: 'on-device ai',
+    line: 'a private ai interpreter that lives in the room.',
+    line2: 'translates both ways, checks every number, forgets.',
+    tags: 'rust  .  python  .  whisper  .  gemma', open: 'repo',
+  },
+  {
     id: 'anybuild', name: 'anybuild', status: 'shipped', kind: 'hackathon',
     line: 'describe a robot. claude designs it in 3d, runs',
     line2: '1,024 browser simulations, writes the firmware.',
@@ -25,11 +31,11 @@ const RELEASES = [
     tags: 'agents  .  enterprise  .  typescript', open: 'repo',
   },
 ];
-const SCROLL = 'formzoai .. forms that interview people .. anybuild .. prompt to robot in 1,024 simulations .. switchyard .. the ai procurement decision room .. greetz to claude, nebius, nvidia and siemens .. this screen rebuilds itself every day .. ';
+const SCROLL = 'formzoai .. forms that interview people .. raum .. an interpreter that translates, checks and forgets .. anybuild .. prompt to robot in 1,024 simulations .. switchyard .. the ai procurement decision room .. greetz to claude, nebius, nvidia and siemens .. this screen rebuilds itself every day .. ';
 const TOOLS = [
   ['typescript', 'ts'], ['javascript', 'js'], ['react', 'react'], ['nextdotjs', 'next'], ['nodedotjs', 'node'],
   ['python', 'python'], ['tailwindcss', 'tailwind'], ['threedotjs', 'three'], ['postgresql', 'postgres'],
-  ['vercel', 'vercel'], ['docker', 'docker'], ['git', 'git'], ['claude', 'claude'],
+  ['vercel', 'vercel'], ['docker', 'docker'], ['git', 'git'], ['claude', 'claude'], ['rust', 'rust'],
 ];
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -62,12 +68,15 @@ async function loadData() {
     repositories(ownerAffiliations:OWNER, privacy:PUBLIC, isFork:false){ totalCount }
     contributionsCollection{ contributionCalendar{ totalContributions } } } }`, { login: LOGIN });
   const days = new Map();
+  const years = [];
   const y0 = new Date(u.createdAt).getUTCFullYear(), y1 = new Date().getUTCFullYear();
   for (let y = y0; y <= y1; y++) {
     const d = await gql(`query($login:String!,$from:DateTime!,$to:DateTime!){ user(login:$login){
-      contributionsCollection(from:$from,to:$to){ contributionCalendar{ weeks{ contributionDays{ date contributionCount } } } } } }`,
+      contributionsCollection(from:$from,to:$to){ contributionCalendar{ totalContributions weeks{ contributionDays{ date weekday contributionCount contributionLevel } } } } } }`,
       { login: LOGIN, from: `${y}-01-01T00:00:00Z`, to: `${y}-12-31T23:59:59Z` });
-    for (const w of d.user.contributionsCollection.contributionCalendar.weeks)
+    const cal = d.user.contributionsCollection.contributionCalendar;
+    years.push({ year: y, total: cal.totalContributions, weeks: cal.weeks });
+    for (const w of cal.weeks)
       for (const day of w.contributionDays) days.set(day.date, day.contributionCount);
   }
   const today = new Date().toISOString().slice(0, 10);
@@ -83,7 +92,7 @@ async function loadData() {
     year: u.contributionsCollection.contributionCalendar.totalContributions,
     allTime: past.reduce((a, [, c]) => a + c, 0),
     week: last(7), prevWeek: last(7, 7),
-    repos: u.repositories.totalCount, since: y0,
+    repos: u.repositories.totalCount, since: y0, years,
   };
 }
 
@@ -238,13 +247,50 @@ function signal(d) {
   return screen(H, D.svg + b, { css: D.css, title: `signal feed: ${d.week} commits this week, ${d.year} in 12 months, ${d.current} day streak` });
 }
 
+// ── the archive: every year on one screen ─────────────────────────────────
+function calendar(d) {
+  const LV = { NONE: 0, FIRST_QUARTILE: 1, SECOND_QUARTILE: 2, THIRD_QUARTILE: 3, FOURTH_QUARTILE: 4 };
+  const SHADE = ['#151515', '#3d3d3d', '#6f6d67', '#aaa598', IVORY];
+  const years = [...d.years].reverse();
+  const step = 17, cell = 13, gx = 300, top = 140, block = 168;
+  const H = top + years.length * block;
+  const D = dust(H, [{ n: 260, cy: H / 2, amp: 120, k: 1, ph: 0.8, th: 90, size: 1.6, op: 0.4, col: '#5a5a5a', dur: 120 }]);
+  let b = label('the archive', 48, 34);
+  b += text(`${fmt(d.allTime)} contributions since ${d.since}`, { f: '6x12', x: 48, y: 58, s: 2, fill: FROST });
+  ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].forEach((m, i) => {
+    b += text(m, { f: '6x12', x: gx + Math.round(i * 4.42) * step, y: top - 24, s: 1.25, fill: DUST });
+  });
+  let css = '';
+  years.forEach((yr, yi) => {
+    const y0 = top + yi * block;
+    b += `<path d="${glyphRun(String(yr.year), 48, y0 - 6, 4)}" fill="url(#tx4)"/>`;
+    b += text(`${fmt(yr.total)} commits`, { f: '6x12', x: 50, y: y0 + 64, s: 1.5, track: 1, fill: FROST });
+    let cells = '';
+    const jan1 = Date.UTC(yr.year, 0, 1), offset = new Date(jan1).getUTCDay();
+    for (const w of yr.weeks) for (const day of w.contributionDays) {
+      const idx = Math.floor((Date.parse(day.date) - jan1) / 864e5) + offset;
+      const col = Math.floor(idx / 7), row = day.weekday;
+      if (day.date > d.today) continue;
+      const isToday = day.date === d.today;
+      cells += `<rect x="${gx + col * step}" y="${y0 + row * step}" width="${cell}" height="${cell}" fill="${isToday ? SIGNAL : SHADE[LV[day.contributionLevel] ?? 0]}"${isToday ? ' class="cr"' : ''}/>`;
+    }
+    b += cells;
+    // playhead: an amber raster line sweeping the year
+    const gw = 53 * step;
+    b += `<g class="ph" style="animation-delay:${(yi * 1.6).toFixed(1)}s"><rect x="${gx - 44}" y="${y0 - 6}" width="44" height="${7 * step + 8}" fill="url(#trail)"/><rect x="${gx}" y="${y0 - 6}" width="2" height="${7 * step + 8}" fill="${SIGNAL}"/></g>`;
+    css = `.ph{animation:ph 7s linear infinite;opacity:0}@keyframes ph{0%{transform:translateX(0);opacity:1}88%{transform:translateX(${gw}px);opacity:1}90%,100%{transform:translateX(${gw}px);opacity:0}}`;
+  });
+  const defs = tex(4) + `<linearGradient id="trail"><stop offset="0" stop-color="${SIGNAL}" stop-opacity="0"/><stop offset="1" stop-color="${SIGNAL}" stop-opacity=".28"/></linearGradient>`;
+  return screen(H, D.svg + b, { css: D.css + css, defs, title: `contribution archive: ${fmt(d.allTime)} contributions since ${d.since}` });
+}
+
 // ── tools ─────────────────────────────────────────────────────────────────
 function tools() {
   const H = 230;
   const icons = JSON.parse(fs.readFileSync(new URL('./icons.json', import.meta.url)));
   const D = dust(H, [{ n: 140, cy: 120, amp: 30, k: 2, ph: 1, th: 40, size: 1.5, op: 0.4, col: '#5a5a5a', dur: 100 }]);
   let b = label('tools', 48, 34);
-  const step = 92, x0 = (W - (TOOLS.length - 1) * step - 60) / 2;
+  const step = 86, x0 = (W - (TOOLS.length - 1) * step - 60) / 2;
   TOOLS.forEach(([slug, name], i) => {
     const x = x0 + i * step;
     b += `<path class="ic" style="animation-delay:${(i * 0.18).toFixed(2)}s" d="${bitmapPath(icons[slug], { x, y: 80, s: 3 })}" fill="${IVORY}"/>`;
@@ -276,6 +322,7 @@ const write = (f, s) => fs.writeFileSync(`${OUT}/${f}`, s);
 write('title.svg', hero(d));
 RELEASES.forEach((r, i) => write(`release-${r.id}.svg`, release(r, i)));
 write('signal.svg', signal(d));
+write('calendar.svg', calendar(d));
 write('tools.svg', tools());
 write('end.svg', end(d));
 console.log(`built: week=${d.week} year=${d.year} allTime=${d.allTime} streak=${d.current} best=${d.best}`);

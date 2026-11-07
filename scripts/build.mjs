@@ -32,6 +32,18 @@ const RELEASES = [
   },
 ];
 const SCROLL = 'formzoai .. forms that interview people .. raum .. an interpreter that translates, checks and forgets .. anybuild .. prompt to robot in 1,024 simulations .. switchyard .. the ai procurement decision room .. greetz to claude, nebius, nvidia and siemens .. this screen rebuilds itself every day .. ';
+const MORE = [
+  ['quant-backtester', 'python', 'vectorized backtests, walk-forward, html tearsheets'],
+  ['riskboard', 'typescript', 'three var methods, cvar, efficient frontier'],
+  ['options-lab', 'rust', 'greeks, implied vol, crr trees, monte carlo'],
+  ['orderbook-engine', 'rust', 'matching engine, ~20m orders/sec on an m2'],
+  ['dcf-engine', 'python', 'dcf models written as live-formula excel'],
+  ['raft-kv', 'typescript', 'raft kv store survives 40,000 chaos runs'],
+  ['bitglyph', 'typescript', 'bitmap fonts as svg pixels; drew this profile'],
+  ['hybrid-search', 'python', 'bm25f + from-scratch hnsw, rank fusion'],
+  ['promptfence', 'python', 'catches prompt injection before the llm does'],
+  ['termplasma', 'rust', 'seven demoscene effects in your terminal'],
+];
 const TOOLS = [
   ['typescript', 'ts'], ['javascript', 'js'], ['react', 'react'], ['nextdotjs', 'next'], ['nodedotjs', 'node'],
   ['python', 'python'], ['tailwindcss', 'tailwind'], ['threedotjs', 'three'], ['postgresql', 'postgres'],
@@ -345,6 +357,18 @@ function skyline(d) {
   return screen(H, D2.svg + `<g transform="translate(0,${maxH - 40})">${out}</g>` + b2, { css, title: `skyline: ${fmt(total)} contributions in the last 12 months` });
 }
 
+// ── more releases: one clickable row per repo ─────────────────────────────
+function moreRow([name, lang, line], i) {
+  const first = i === 0, H = first ? 128 : 74, y0 = first ? 54 : 0;
+  const D = dust(H, [{ n: 60, cy: H / 2, amp: 20, k: 1, ph: i, th: 30, size: 1.5, op: 0.4, col: '#5a5a5a', dur: 100 }]);
+  let b2 = first ? label('more releases', 48, 26) : '';
+  b2 += text('>', { f: '8x16', x: 48, y: y0 + 14, s: 2, fill: FROST });
+  b2 += text(name, { f: '8x16', x: 80, y: y0 + 14, s: 2 });
+  b2 += text(line, { f: '6x12', x: 430, y: y0 + 22, s: 1.5, track: 1, fill: '#b9b5a9' });
+  b2 += text(lang, { f: '6x12', x: W - 48 - textWidth(lang, { f: '6x12', s: 1.5, track: 2 }), y: y0 + 22, s: 1.5, track: 2, fill: FROST });
+  return screen(H, D.svg + b2, { css: D.css, title: `${name}: ${line}` });
+}
+
 // ── tools ─────────────────────────────────────────────────────────────────
 function tools() {
   const H = 230;
@@ -390,6 +414,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const write = (f, s) => fs.writeFileSync(`${OUT}/${f}`, s);
 write('title.svg', hero(d));
 RELEASES.forEach((r, i) => write(`release-${r.id}.svg`, release(r, i)));
+MORE.forEach((m, i) => write(`more-${m[0]}.svg`, moreRow(m, i)));
 write('signal.svg', signal(d));
 write('calendar.svg', calendar(d));
 write('skyline.svg', skyline(d));

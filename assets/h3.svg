@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="76" viewBox="0 0 1280 76">
+<style>.u{animation:u 2.4s cubic-bezier(.6,0,.2,1) infinite alternate;transform-origin:40px 0}
+@keyframes u{from{transform:scaleX(.08)}to{transform:scaleX(1)}}</style>
+<defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#22d3ee" stop-opacity="0"/></linearGradient></defs>
+<text x="40" y="46" font-family="ui-monospace,SFMono-Regular,'SF Mono',Menlo,Consolas,'Liberation Mono',monospace" font-size="16" fill="#22d3ee" letter-spacing="2">0x03</text>
+<text x="96" y="47" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="30" font-weight="800" fill="#8b949e" letter-spacing="3">CONTRIBUTION SKYLINE</text>
+<rect class="u" x="40" y="62" width="1200" height="3" rx="1.5" fill="url(#g)"/>
+</svg>

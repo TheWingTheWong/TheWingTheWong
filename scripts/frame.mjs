@@ -13,9 +13,10 @@ function inner(src) {
   return { body: svg.slice(open.length, svg.lastIndexOf('</svg>')), vb };
 }
 
-function frame(src, out, title, caption, { scale = 1, top = 72, bottom = 40 } = {}) {
+function frame(src, out, title, caption, { scale = 1, top = 72, bottom = 40, crop } = {}) {
   if (!fs.existsSync(src)) { console.log(`frame: skip ${src} (missing)`); return; }
-  const { body, vb } = inner(src);
+  const { body, vb: raw } = inner(src);
+  const vb = crop || raw; // crop drops the snake's progress bar under the grid
   const w = vb[2] * scale, h = vb[3] * scale;
   const H = Math.round(top + h + bottom);
   const x = (W - w) / 2;
@@ -26,5 +27,5 @@ function frame(src, out, title, caption, { scale = 1, top = 72, bottom = 40 } = 
   console.log(`frame: ${out}`);
 }
 
-frame('assets/raw/snake.svg', 'assets/snake.svg', 'a snake eating the contribution calendar', 'the snake eats the calendar', { scale: 1.36, top: 64, bottom: 8 });
+frame('assets/raw/snake.svg', 'assets/snake.svg', 'a snake eating the contribution calendar', 'the snake eats the calendar', { scale: 1.36, top: 64, bottom: 20, crop: [-16, -20, 880, 140] });
 frame('profile-3d-contrib/profile-custom-void.svg', 'assets/skyline.svg', '3d contribution calendar', 'skyline', { scale: 1, top: 64, bottom: 0 });

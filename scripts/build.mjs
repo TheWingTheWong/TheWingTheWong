@@ -249,7 +249,6 @@ function signal(d) {
 
 // ── the archive: every year on one screen ─────────────────────────────────
 function calendar(d) {
-  const LV = { NONE: 0, FIRST_QUARTILE: 1, SECOND_QUARTILE: 2, THIRD_QUARTILE: 3, FOURTH_QUARTILE: 4 };
   const SHADE = ['#151515', '#3d3d3d', '#6f6d67', '#aaa598', IVORY];
   const years = [...d.years].reverse();
   const step = 17, cell = 13, gx = 300, top = 140, block = 168;
@@ -266,13 +265,18 @@ function calendar(d) {
     b += `<path d="${glyphRun(String(yr.year), 48, y0 - 6, 4)}" fill="url(#tx4)"/>`;
     b += text(`${fmt(yr.total)} commits`, { f: '6x12', x: 50, y: y0 + 64, s: 1.5, track: 1, fill: FROST });
     let cells = '';
+    // shade by rank within the year, so every year reads at full range
+    const counts = yr.weeks.flatMap((w) => w.contributionDays.map((x) => x.contributionCount)).filter((c) => c > 0).sort((p, q) => p - q);
+    const q = (f) => counts[Math.floor(f * (counts.length - 1))] ?? 1;
+    const cut = [q(0.25), q(0.5), q(0.75)];
+    const shadeOf = (c) => (c === 0 ? 0 : c <= cut[0] ? 1 : c <= cut[1] ? 2 : c <= cut[2] ? 3 : 4);
     const jan1 = Date.UTC(yr.year, 0, 1), offset = new Date(jan1).getUTCDay();
     for (const w of yr.weeks) for (const day of w.contributionDays) {
       const idx = Math.floor((Date.parse(day.date) - jan1) / 864e5) + offset;
       const col = Math.floor(idx / 7), row = day.weekday;
       if (day.date > d.today) continue;
       const isToday = day.date === d.today;
-      cells += `<rect x="${gx + col * step}" y="${y0 + row * step}" width="${cell}" height="${cell}" fill="${isToday ? SIGNAL : SHADE[LV[day.contributionLevel] ?? 0]}"${isToday ? ' class="cr"' : ''}/>`;
+      cells += `<rect x="${gx + col * step}" y="${y0 + row * step}" width="${cell}" height="${cell}" fill="${isToday ? SIGNAL : SHADE[shadeOf(day.contributionCount)]}"${isToday ? ' class="cr"' : ''}/>`;
     }
     b += cells;
     // playhead: an amber raster line sweeping the year

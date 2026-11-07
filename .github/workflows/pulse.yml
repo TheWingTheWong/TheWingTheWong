@@ -51,19 +51,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USERNAME: ${{ github.repository_owner }}
+          SETTING_JSON: .github/3d-settings.json
 
       - name: Snake
         uses: Platane/snk/svg-only@v3
         with:
           github_user_name: ${{ github.repository_owner }}
           outputs: |
-            assets/snake.svg?palette=github-light&color_snake=#8250df
-            assets/snake-dark.svg?palette=github-dark&color_snake=#a855f7
+            assets/raw/snake.svg?color_snake=#ffb000&color_dots=#1a1a1a,#4a4a4a,#8a8a8a,#b9b5a9,#e6e2d6
+
+      - name: Frame snake and skyline in the void screen
+        run: |
+          sudo chown -R "$(id -u):$(id -g)" . || true
+          node scripts/frame.mjs
 
       - name: Commit visuals
         run: |
-          sudo chown -R "$(id -u):$(id -g)" . || true
-          git add assets profile-3d-contrib
+          git add assets
           if git diff --cached --quiet; then echo "no visual changes"; exit 0; fi
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -q -m "chore: refresh profile visuals"

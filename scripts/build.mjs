@@ -290,7 +290,7 @@ function calendar(d) {
 
 // ── skyline: the last 12 months as an isometric city ───────────────────────
 function skyline(d) {
-  const W2 = W, H = 640, a = 16, b = 6.2, ox = 196, oy = 112, maxH = 230;
+  const W2 = W, H = 700, a = 16, b = 6.2, ox = 196, oy = 112, maxH = 230;
   const end = Date.parse(d.today);
   const start = end - 364 * 864e5 - new Date(end - 364 * 864e5).getUTCDay() * 864e5;
   const days = d.past.filter(([dt]) => Date.parse(dt) >= start);
@@ -323,12 +323,12 @@ function skyline(d) {
   const peak = days.reduce((m, x) => (x[1] > m[1] ? x : m), ['', 0]);
   let b2 = label('skyline', 48, 34);
   b2 += text(`last 12 months . ${fmt(total)} contributions`, { f: '6x12', x: 48, y: 58, s: 2, fill: FROST });
-  b2 += label('peak day', 1000, 440) + text(`${peak[0].slice(5).replace('-', '.')}  ${peak[1]} commits`, { f: '6x12', x: 1000, y: 464, s: 2 });
-  b2 += label('busiest month', 1000, 510);
+  b2 += label('peak day', 960, 120) + text(`${peak[0].replace(/-/g, '.')}  ${peak[1]} commits`, { f: '6x12', x: 960, y: 144, s: 2 });
+  b2 += label('busiest month', 960, 190);
   const months = {};
   for (const [dt, c] of days) months[dt.slice(0, 7)] = (months[dt.slice(0, 7)] || 0) + c;
   const bm = Object.entries(months).sort((p, q2) => q2[1] - p[1])[0];
-  b2 += text(`${bm[0].replace('-', '.')}  ${fmt(bm[1])}`, { f: '6x12', x: 1000, y: 534, s: 2 });
+  b2 += text(`${bm[0].replace('-', '.')}  ${fmt(bm[1])}`, { f: '6x12', x: 960, y: 214, s: 2 });
   const D2 = dust(H, [{ n: 220, cy: 200, amp: 80, k: 1, ph: 2.4, th: 80, size: 1.6, op: 0.4, col: '#5a5a5a', dur: 120 }]);
   const css = D2.css + `.bd{transform-box:fill-box;transform-origin:50% 100%;animation:rise 1.4s cubic-bezier(.2,.8,.2,1) both}@keyframes rise{from{transform:scaleY(0)}to{transform:scaleY(1)}}`;
   return screen(H, D2.svg + `<g transform="translate(0,${maxH - 40})">${out}</g>` + b2, { css, title: `skyline: ${fmt(total)} contributions in the last 12 months` });

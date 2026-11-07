@@ -288,6 +288,52 @@ function calendar(d) {
   return screen(H, D.svg + b, { css: D.css + css, defs, title: `contribution archive: ${fmt(d.allTime)} contributions since ${d.since}` });
 }
 
+// ── skyline: the last 12 months as an isometric city ───────────────────────
+function skyline(d) {
+  const W2 = W, H = 640, a = 16, b = 6.2, ox = 196, oy = 112, maxH = 230;
+  const end = Date.parse(d.today);
+  const start = end - 364 * 864e5 - new Date(end - 364 * 864e5).getUTCDay() * 864e5;
+  const days = d.past.filter(([dt]) => Date.parse(dt) >= start);
+  const counts = days.map(([, c]) => c).filter((c) => c > 0).sort((p, q) => p - q);
+  const q = (f) => counts[Math.floor(f * (counts.length - 1))] ?? 1;
+  const cut = [q(0.25), q(0.5), q(0.75)], max = Math.max(1, ...counts);
+  const TOP = ['#1c1c1c', '#4d4c48', '#7f7c74', '#b3ae9f', IVORY];
+  const shade = (c) => (c === 0 ? 0 : c <= cut[0] ? 1 : c <= cut[1] ? 2 : c <= cut[2] ? 3 : 4);
+  const dim = (hex, f) => '#' + hex.slice(1).match(/../g).map((x) => Math.round(parseInt(x, 16) * f).toString(16).padStart(2, '0')).join('');
+  const P = (c, r) => [ox + (c - r) * a + 7 * a, oy + (c + r) * b];
+  const boxes = days.map(([dt, c]) => {
+    const i = Math.round((Date.parse(dt) - start) / 864e5);
+    return { dt, c, col: Math.floor(i / 7), row: i % 7 };
+  }).sort((p, q) => p.col + p.row - (q.col + q.row) || p.col - q.col);
+  const g = 0.14;
+  let out = '';
+  for (const bx of boxes) {
+    const h = bx.c === 0 ? 1.5 : 4 + Math.pow(bx.c / max, 0.75) * maxH;
+    const isToday = bx.dt === d.today;
+    const top = isToday ? SIGNAL : TOP[shade(bx.c)];
+    const [c, r] = [bx.col + g, bx.row + g], s = 1 - 2 * g;
+    const A = P(c, r), B = P(c + s, r), C = P(c + s, r + s), Dd = P(c, r + s);
+    const up = ([x, y]) => `${x.toFixed(1)},${(y - h).toFixed(1)}`, at = ([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`;
+    out += `<g class="bd" style="animation-delay:${(bx.col * 0.035).toFixed(2)}s">`
+      + `<path d="M${at(B)}L${at(C)}L${up(C)}L${up(B)}Z" fill="${dim(top, 0.62)}"/>`
+      + `<path d="M${at(Dd)}L${at(C)}L${up(C)}L${up(Dd)}Z" fill="${dim(top, 0.42)}"/>`
+      + `<path d="M${up(A)}L${up(B)}L${up(C)}L${up(Dd)}Z" fill="${top}"${isToday ? ' class="cr"' : ''}/></g>`;
+  }
+  const total = days.reduce((s2, [, c]) => s2 + c, 0);
+  const peak = days.reduce((m, x) => (x[1] > m[1] ? x : m), ['', 0]);
+  let b2 = label('skyline', 48, 34);
+  b2 += text(`last 12 months . ${fmt(total)} contributions`, { f: '6x12', x: 48, y: 58, s: 2, fill: FROST });
+  b2 += label('peak day', 1000, 440) + text(`${peak[0].slice(5).replace('-', '.')}  ${peak[1]} commits`, { f: '6x12', x: 1000, y: 464, s: 2 });
+  b2 += label('busiest month', 1000, 510);
+  const months = {};
+  for (const [dt, c] of days) months[dt.slice(0, 7)] = (months[dt.slice(0, 7)] || 0) + c;
+  const bm = Object.entries(months).sort((p, q2) => q2[1] - p[1])[0];
+  b2 += text(`${bm[0].replace('-', '.')}  ${fmt(bm[1])}`, { f: '6x12', x: 1000, y: 534, s: 2 });
+  const D2 = dust(H, [{ n: 220, cy: 200, amp: 80, k: 1, ph: 2.4, th: 80, size: 1.6, op: 0.4, col: '#5a5a5a', dur: 120 }]);
+  const css = D2.css + `.bd{transform-box:fill-box;transform-origin:50% 100%;animation:rise 1.4s cubic-bezier(.2,.8,.2,1) both}@keyframes rise{from{transform:scaleY(0)}to{transform:scaleY(1)}}`;
+  return screen(H, D2.svg + `<g transform="translate(0,${maxH - 40})">${out}</g>` + b2, { css, title: `skyline: ${fmt(total)} contributions in the last 12 months` });
+}
+
 // ── tools ─────────────────────────────────────────────────────────────────
 function tools() {
   const H = 230;
@@ -321,12 +367,22 @@ function end(d) {
 }
 
 const d = await loadData();
+// guard: GitHub briefly reports far fewer contributions while it recounts a big push;
+// keep the last good screens instead of publishing an empty archive
+const SNAP = `${OUT}/data.json`;
+const prev = fs.existsSync(SNAP) ? JSON.parse(fs.readFileSync(SNAP, 'utf8')) : null;
+if (prev && d.allTime < prev.allTime * 0.6) {
+  console.log(`guard: ${d.allTime} contributions vs ${prev.allTime} last time; keeping previous screens`);
+  process.exit(0);
+}
 fs.mkdirSync(OUT, { recursive: true });
 const write = (f, s) => fs.writeFileSync(`${OUT}/${f}`, s);
 write('title.svg', hero(d));
 RELEASES.forEach((r, i) => write(`release-${r.id}.svg`, release(r, i)));
 write('signal.svg', signal(d));
 write('calendar.svg', calendar(d));
+write('skyline.svg', skyline(d));
+write('data.json', JSON.stringify({ allTime: d.allTime, year: d.year, streak: d.current, at: d.today }) + '\n');
 write('tools.svg', tools());
 write('end.svg', end(d));
 console.log(`built: week=${d.week} year=${d.year} allTime=${d.allTime} streak=${d.current} best=${d.best}`);

@@ -145,7 +145,7 @@ function hero(d) {
 
   // the name: front plane, never moves
   const s = 10, nx = 40, ny = 110;
-  body += `<path d="${glyphRun('ansorjon', nx, ny, s)}" fill="url(#tx10)"/>`;
+  body += `<path d="${glyphRun('ansor', nx, ny, s)}" fill="url(#tx10)"/>`;
   body += `<path d="${glyphRun('juraev', nx, ny + 13 * s, s)}" fill="url(#tx10)"/>`;
   const jw = textWidth('juraev', { f: '8x16', s });
   body += `<rect class="cr" x="${nx + jw + s}" y="${ny + 13 * s + 9 * s}" width="${2 * s}" height="${3 * s}" fill="${SIGNAL}"/>`;
@@ -182,7 +182,7 @@ function hero(d) {
 
   const css = D.css + `.sc{animation:sc ${(L / v).toFixed(2)}s linear infinite}@keyframes sc{to{transform:translateX(-${L}px)}}
 .wv{animation:wv ${dur.toFixed(3)}s ease-in-out infinite}@keyframes wv{0%,100%{transform:translateY(-${A}px)}50%{transform:translateY(${A}px)}}`;
-  return screen(H, D.svg + body, { css, defs: tex(10) + tex(5) + glyphDefs, top: true, title: 'thewingthewong presents ansorjon juraev' });
+  return screen(H, D.svg + body, { css, defs: tex(10) + tex(5) + glyphDefs, top: true, title: 'thewingthewong presents ansor juraev' });
 }
 
 // ── release rows ──────────────────────────────────────────────────────────
@@ -213,7 +213,7 @@ function signal(d) {
     const fill = quiet ? DUST : IVORY;
     if (live) b += text('>', { f: '6x12', x: 48, y, s: 2, fill: SIGNAL });
     b += text(date.slice(5).replace('-', '.'), { f: '6x12', x: 76, y, s: 2, fill: quiet ? DUST : FROST });
-    b += text(quiet ? 'sys' : 'ansorjon', { f: '6x12', x: 172, y, s: 2, fill });
+    b += text(quiet ? 'sys' : 'ansor', { f: '6x12', x: 172, y, s: 2, fill });
     b += text(quiet ? 'quiet' : 'pushed', { f: '6x12', x: 300, y, s: 2, fill });
     if (!quiet) {
       b += text(`${c} commit${c === 1 ? '' : 's'}`, { f: '6x12', x: 404, y, s: 2, fill });
@@ -273,7 +273,7 @@ function end(d) {
 const d = await loadData();
 fs.mkdirSync(OUT, { recursive: true });
 const write = (f, s) => fs.writeFileSync(`${OUT}/${f}`, s);
-write('hero.svg', hero(d));
+write('title.svg', hero(d));
 RELEASES.forEach((r, i) => write(`release-${r.id}.svg`, release(r, i)));
 write('signal.svg', signal(d));
 write('tools.svg', tools());

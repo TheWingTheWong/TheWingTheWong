@@ -158,8 +158,8 @@ function hero(d) {
   body += `<path d="${glyphRun('juraev', nx, ny + 13 * s, s)}" fill="url(#tx10)"/>`;
   const jw = textWidth('juraev', { f: '8x16', s });
   body += `<rect class="cr" x="${nx + jw + s}" y="${ny + 13 * s + 9 * s}" width="${2 * s}" height="${3 * s}" fill="${SIGNAL}"/>`;
-  body += text('founder of formzoai. vibe-codes robots, agents', { f: '8x16', x: 48, y: 418, s: 2 });
-  body += text('and forms that talk back.', { f: '8x16', x: 48, y: 452, s: 2 });
+  body += text('founder of formzoai. building ai that listens,', { f: '8x16', x: 48, y: 418, s: 2 });
+  body += text('translates, designs robots and runs offline.', { f: '8x16', x: 48, y: 452, s: 2 });
 
   // status column
   const cx = 980;

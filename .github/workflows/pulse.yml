@@ -31,18 +31,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/build.mjs
 
-      - name: 3D contribution skyline
-        uses: yoshi389111/github-profile-3d-contrib@v0.9.3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          USERNAME: ${{ github.repository_owner }}
-          SETTING_JSON: .github/3d-settings.json
-
-      - name: Frame skyline in the void screen
-        run: |
-          sudo chown -R "$(id -u):$(id -g)" . || true
-          node scripts/frame.mjs
-
       - name: Commit visuals
         run: |
           git add assets

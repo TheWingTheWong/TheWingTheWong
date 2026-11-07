@@ -52,15 +52,26 @@ const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
 const gauss = () => (rnd() + rnd() + rnd() - 1.5) / 1.5;
 
 // ── data ──────────────────────────────────────────────────────────────────
-async function gql(query, variables) {
-  const res = await fetch('https://api.github.com/graphql', {
-    method: 'POST',
-    headers: { Authorization: `bearer ${TOKEN}`, 'Content-Type': 'application/json', 'User-Agent': 'profile-builder' },
-    body: JSON.stringify({ query, variables }),
-  });
-  const json = await res.json();
-  if (json.errors) throw new Error(JSON.stringify(json.errors));
-  return json.data;
+// retries transient failures (network errors, 5xx, rate limits) with exponential backoff
+async function gql(query, variables, attempts = 4) {
+  for (let i = 1; ; i++) {
+    try {
+      const res = await fetch('https://api.github.com/graphql', {
+        method: 'POST',
+        headers: { Authorization: `bearer ${TOKEN}`, 'Content-Type': 'application/json', 'User-Agent': 'profile-builder' },
+        body: JSON.stringify({ query, variables }),
+      });
+      if (res.status >= 500 || res.status === 403 || res.status === 429) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      if (json.errors) throw new Error(JSON.stringify(json.errors));
+      return json.data;
+    } catch (e) {
+      if (i >= attempts) throw e;
+      const wait = 1000 * 2 ** (i - 1);
+      console.log(`graphql: ${e.message}; retry ${i}/${attempts - 1} in ${wait}ms`);
+      await new Promise((r) => setTimeout(r, wait));
+    }
+  }
 }
 
 async function loadData() {

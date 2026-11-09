@@ -18,10 +18,10 @@ Ansorjon "vibe codes" with AI and treats that as licence to build anything: robo
 ## Operating Context
 - Rendered inside GitHub's README column (~830px wide on desktop, ~360px on phones), in GitHub light or dark theme.
 - Only `<img>` content renders: SVG with CSS/SMIL animation works, no JavaScript, no external fonts or stylesheets inside SVG, no interaction beyond links.
-- Visuals are static SVG cards built locally by `scripts/build.mjs` (desktop and a narrow phone variant, chosen with `<picture>`); there is no scheduled rebuild.
+- The profile is one image: the card photograph (`assets/source/card.jpg`, generated with Gemini on the user's account) embedded in an SVG built locally by `scripts/build.mjs` (desktop and a narrow phone variant, chosen with `<picture>`); there is no scheduled rebuild.
 
 ## Capabilities and Constraints
-Must keep: the name, one sentence, and three works (FormzoAI, RAUM, AnyBuild). Kept short on purpose (2026-11-09): no commit counts, streaks or "shipping daily" signals, no calendar, skyline, signal feed, tool strip or end screen, since GitHub already shows the contribution graph directly below.
+Must keep (user, 2026-11-09): the photo of a hand holding the "I'm CEO, B*tch." card, a fade to dark, and one end credit: "Any resemblance to a functioning company is intentional." Nothing else: no projects, links, name line, stats or second quote (the user rejected stacking lines as lame). No Facebook or film branding.
 
 ## Brand Commitments
 - Name: Ansorjon Juraev, handle TheWingTheWong.

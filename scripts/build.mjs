@@ -27,7 +27,7 @@ const GROUND = '#121211', INK = '#EEECE6', STONE = '#A3A099', SLATE = '#8A8881';
 // phone at ~0.9x in a ~343px column; sizes are picked so phone text stays >= 12px.
 const LAYOUTS = {
   '': { W: 760, M: 48, R: 20, name: 96, bar: [56, 4, 30], ts: 30, lh: 40, gap: 74, ns: 34, ks: 18, ls: 20, aw: 13, is: 24, ilh: 32, rowTop: 46, ideaGap: 38, oneLine: true },
-  '-m': { W: 380, M: 24, R: 14, name: 48, bar: [32, 3, 18], ts: 19, lh: 26, gap: 44, ns: 23, ks: 14, ls: 14, aw: 10, is: 16, ilh: 22, rowTop: 34, ideaGap: 26, oneLine: false },
+  '-m': { W: 380, M: 24, R: 14, name: 48, bar: [32, 3, 18], ts: 19, lh: 26, gap: 44, ns: 24, ks: 15, ls: 15, aw: 10.5, is: 17, ilh: 23, rowTop: 34, ideaGap: 26, oneLine: false },
 };
 
 // lay out a string as one path: kerning on, tracking in em

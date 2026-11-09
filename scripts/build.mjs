@@ -1,7 +1,7 @@
 // Builds the profile's cracktro-style SVG screens in assets/ from live GitHub data.
 // Usage: GITHUB_TOKEN=... node scripts/build.mjs
 import fs from 'node:fs';
-import { text, textWidth, glyphPaths, bitmapPath } from './bitmap.mjs';
+import { text, textWidth } from './bitmap.mjs';
 
 // ── content (edit me) ─────────────────────────────────────────────────────
 const LOGIN = 'TheWingTheWong';
@@ -31,12 +31,6 @@ const RELEASES = [
     tags: 'agents  .  enterprise  .  typescript', open: 'repo',
   },
 ];
-const SCROLL = 'formzoai .. forms that interview people .. raum .. an interpreter that translates, checks and forgets .. anybuild .. prompt to robot in 1,024 simulations .. switchyard .. the ai procurement decision room .. greetz to claude, nebius, nvidia and siemens .. this screen rebuilds itself every day .. ';
-const TOOLS = [
-  ['typescript', 'ts'], ['javascript', 'js'], ['react', 'react'], ['nextdotjs', 'next'], ['nodedotjs', 'node'],
-  ['python', 'python'], ['tailwindcss', 'tailwind'], ['threedotjs', 'three'], ['postgresql', 'postgres'],
-  ['vercel', 'vercel'], ['docker', 'docker'], ['git', 'git'], ['claude', 'claude'], ['rust', 'rust'],
-];
 // ──────────────────────────────────────────────────────────────────────────
 
 const VOID = '#000000', DUST = '#4a4a4a', FROST = '#8a8a8a', IVORY = '#e6e2d6', SIGNAL = '#ffb000';
@@ -45,7 +39,6 @@ const OUT = 'assets';
 const TOKEN = process.env.GITHUB_TOKEN;
 if (!TOKEN) throw new Error('GITHUB_TOKEN missing');
 const pad = (n, w = 4) => String(n).padStart(w, '0');
-const fmt = (n) => n.toLocaleString('en-US');
 
 let seed = 20261107;
 const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
@@ -147,11 +140,11 @@ function screen(h, body, { css = '', defs = '', top = false, bottom = false, tit
 
 // ── hero: the title screen ────────────────────────────────────────────────
 function hero(d) {
-  const H = 720;
+  const H = 528;
   const D = dust(H, [
-    { n: 1100, cy: 300, amp: 110, k: 1, ph: 0.4, th: 46, size: 1.6, op: 0.75, col: FROST, dur: 70 },
-    { n: 520, cy: 470, amp: 80, k: 2, ph: 2.1, th: 34, size: 2.3, op: 0.6, col: '#6b6b6b', dur: 140 },
-    { n: 120, cy: 240, amp: 150, k: 1, ph: 3.6, th: 90, size: 3.4, op: 0.55, col: DUST, dur: 280 },
+    { n: 900, cy: 270, amp: 100, k: 1, ph: 0.4, th: 44, size: 1.6, op: 0.7, col: FROST, dur: 70 },
+    { n: 380, cy: 400, amp: 60, k: 2, ph: 2.1, th: 30, size: 2.3, op: 0.55, col: '#6b6b6b', dur: 140 },
+    { n: 100, cy: 230, amp: 130, k: 1, ph: 3.6, th: 80, size: 3.4, op: 0.5, col: DUST, dur: 280 },
   ]);
 
   // credit line
@@ -177,38 +170,20 @@ function hero(d) {
   body += label('signal', cx, 140);
   body += text('shipping daily', { f: '6x12', x: cx, y: 164, s: 2 });
   [4, 7, 10, 13].forEach((hgt, i) => { body += `<rect x="${cx + 186 + i * 6}" y="${186 - hgt}" width="4" height="${hgt}" fill="${IVORY}"/>`; });
-  body += label('streak', cx, 224);
-  body += `<path d="${glyphRun(pad(d.current), cx, 240, 5)}" fill="url(#tx5)"/>`;
-  body += text('days', { f: '6x12', x: cx + textWidth(pad(d.current), { f: '8x16', s: 5 }) + 10, y: 290, s: 1.5, track: 2, fill: FROST });
+  body += label('past year', cx, 224);
+  body += `<path d="${glyphRun(String(d.year), cx, 240, 5)}" fill="url(#tx5)"/>`;
   body += label('releases', cx, 336);
   body += text(`${pad(RELEASES.length, 3)} below`, { f: '6x12', x: cx, y: 360, s: 2 });
 
-  // sine scroller: the wave stays put in screen space while the text runs left
-  const gs = 3, track = 1, v = 95, lam = 560, A = 24, dur = lam / v;
-  const glyphs = glyphPaths(SCROLL, { f: '8x16', s: gs, track });
-  const L = textWidth(SCROLL, { f: '8x16', s: gs, track }) + track * gs;
-  const uniq = {};
-  for (const g of glyphs) if (g.d) uniq[g.ch] = g.d;
-  const ids = Object.fromEntries(Object.keys(uniq).map((c, i) => [c, `g${i}`]));
-  const glyphDefs = Object.entries(uniq).map(([c, dd]) => `<path id="${ids[c]}" d="${dd}"/>`).join('');
-  let row = '';
-  for (const copy of [0, 1, 2]) for (const g of glyphs) {
-    if (!g.d) continue;
-    const x0 = g.x + copy * L;
-    const delay = -((1 - ((x0 / lam) % 1)) * dur).toFixed(3);
-    row += `<g class="wv" style="animation-delay:${delay}s"><use href="#${ids[g.ch]}" x="${x0}" fill="${g.ch === '.' ? FROST : '#d4cfc2'}"/></g>`;
-  }
-  body += `<g transform="translate(0,600)"><g class="sc">${row}</g></g>`;
-
-  const css = D.css + `.sc{animation:sc ${(L / v).toFixed(2)}s linear infinite}@keyframes sc{to{transform:translateX(-${L}px)}}
-.wv{animation:wv ${dur.toFixed(3)}s ease-in-out infinite}@keyframes wv{0%,100%{transform:translateY(-${A}px)}50%{transform:translateY(${A}px)}}`;
-  return screen(H, D.svg + body, { css, defs: tex(10) + tex(5) + glyphDefs, top: true, title: 'thewingthewong presents ansor juraev' });
+  const css = D.css;
+  return screen(H, D.svg + body, { css, defs: tex(10) + tex(5), top: true, title: 'thewingthewong presents ansor juraev' });
 }
 
 // ── release rows ──────────────────────────────────────────────────────────
 function release(r, i) {
   const first = i === 0;
-  const H = first ? 236 : 176;
+  const last = i === RELEASES.length - 1;
+  const H = (first ? 236 : 176) + (last ? 28 : 0);
   const y0 = first ? 60 : 0;
   const D = dust(H, [{ n: 160, cy: H * 0.5, amp: 40, k: 1, ph: i * 1.7, th: 50, size: 1.6, op: 0.5, col: '#5a5a5a', dur: 90 }]);
   let b = first ? label('releases', 48, 28) : '';
@@ -220,161 +195,7 @@ function release(r, i) {
   const col = (lx, k, v, live) => label(k, lx, y0 + 26) + text(v, { f: '6x12', x: lx, y: y0 + 50, s: 2, fill: live ? SIGNAL : IVORY });
   b += col(800, 'status', r.status, r.live) + col(950, 'kind', r.kind);
   b += label('open', 1110, y0 + 26) + text(`${r.open} >`, { f: '6x12', x: 1110, y: y0 + 50, s: 2 });
-  return screen(H, D.svg + b, { css: D.css, defs: tex(4), title: `${r.name}: ${r.line} ${r.line2}` });
-}
-
-// ── signal feed ───────────────────────────────────────────────────────────
-function signal(d) {
-  const H = 440;
-  const D = dust(H, [{ n: 300, cy: 220, amp: 70, k: 1, ph: 5, th: 70, size: 1.6, op: 0.45, col: '#5a5a5a', dur: 110 }]);
-  let b = label('signal feed', 48, 34);
-  d.past.slice(-8).reverse().forEach(([date, c], i) => {
-    const y = 74 + i * 42, live = i === 0, quiet = c === 0;
-    const fill = quiet ? DUST : IVORY;
-    if (live) b += text('>', { f: '6x12', x: 48, y, s: 2, fill: SIGNAL });
-    b += text(date.slice(5).replace('-', '.'), { f: '6x12', x: 76, y, s: 2, fill: quiet ? DUST : FROST });
-    b += text(quiet ? 'sys' : 'ansor', { f: '6x12', x: 172, y, s: 2, fill });
-    b += text(quiet ? 'quiet' : 'pushed', { f: '6x12', x: 300, y, s: 2, fill });
-    if (!quiet) {
-      b += text(`${c} commit${c === 1 ? '' : 's'}`, { f: '6x12', x: 404, y, s: 2, fill });
-      for (let k = 0; k < Math.min(c, 30); k++) b += `<rect x="${570 + k * 9}" y="${y + 9}" width="5" height="5" fill="${live ? SIGNAL : FROST}"/>`;
-    }
-  });
-  const tx = 900;
-  b += label('totals', tx, 34);
-  const delta = d.week - d.prevWeek;
-  [
-    ['this week', `${d.week}`, `${delta >= 0 ? '+' : ''}${delta} vs last`],
-    ['12 months', fmt(d.year), ''],
-    ['all time', fmt(d.allTime), `since ${d.since}`],
-    ['streak', `${d.current} day${d.current === 1 ? '' : 's'}`, `best ${d.best}`],
-    ['public repos', `${d.repos}`, ''],
-  ].forEach(([k, v, note], i) => {
-    const y = 74 + i * 66;
-    b += label(k, tx, y);
-    b += text(v, { f: '6x12', x: tx, y: y + 24, s: 2 });
-    if (note) b += text(note, { f: '6x12', x: tx + textWidth(v, { f: '6x12', s: 2 }) + 16, y: y + 30, s: 1.5, track: 1, fill: i === 0 && delta > 0 ? SIGNAL : FROST });
-  });
-  return screen(H, D.svg + b, { css: D.css, title: `signal feed: ${d.week} commits this week, ${d.year} in 12 months, ${d.current} day streak` });
-}
-
-// ── the archive: every year on one screen ─────────────────────────────────
-function calendar(d) {
-  const SHADE = ['#151515', '#3d3d3d', '#6f6d67', '#aaa598', IVORY];
-  const years = [...d.years].reverse();
-  const step = 17, cell = 13, gx = 300, top = 140, block = 168;
-  const H = top + years.length * block;
-  const D = dust(H, [{ n: 260, cy: H / 2, amp: 120, k: 1, ph: 0.8, th: 90, size: 1.6, op: 0.4, col: '#5a5a5a', dur: 120 }]);
-  let b = label('the archive', 48, 34);
-  b += text(`${fmt(d.allTime)} contributions since ${d.since}`, { f: '6x12', x: 48, y: 58, s: 2, fill: FROST });
-  ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].forEach((m, i) => {
-    b += text(m, { f: '6x12', x: gx + Math.round(i * 4.42) * step, y: top - 24, s: 1.25, fill: DUST });
-  });
-  let css = '';
-  years.forEach((yr, yi) => {
-    const y0 = top + yi * block;
-    b += `<path d="${glyphRun(String(yr.year), 48, y0 - 6, 4)}" fill="url(#tx4)"/>`;
-    b += text(`${fmt(yr.total)} commits`, { f: '6x12', x: 50, y: y0 + 64, s: 1.5, track: 1, fill: FROST });
-    let cells = '';
-    // shade by rank within the year, so every year reads at full range
-    const counts = yr.weeks.flatMap((w) => w.contributionDays.map((x) => x.contributionCount)).filter((c) => c > 0).sort((p, q) => p - q);
-    const q = (f) => counts[Math.floor(f * (counts.length - 1))] ?? 1;
-    const cut = [q(0.25), q(0.5), q(0.75)];
-    const shadeOf = (c) => (c === 0 ? 0 : c <= cut[0] ? 1 : c <= cut[1] ? 2 : c <= cut[2] ? 3 : 4);
-    const jan1 = Date.UTC(yr.year, 0, 1), offset = new Date(jan1).getUTCDay();
-    for (const w of yr.weeks) for (const day of w.contributionDays) {
-      const idx = Math.floor((Date.parse(day.date) - jan1) / 864e5) + offset;
-      const col = Math.floor(idx / 7), row = day.weekday;
-      if (day.date > d.today) continue;
-      const isToday = day.date === d.today;
-      cells += `<rect x="${gx + col * step}" y="${y0 + row * step}" width="${cell}" height="${cell}" fill="${isToday ? SIGNAL : SHADE[shadeOf(day.contributionCount)]}"${isToday ? ' class="cr"' : ''}/>`;
-    }
-    b += cells;
-    // playhead: an amber raster line sweeping the year
-    const gw = 53 * step;
-    b += `<g class="ph" style="animation-delay:${(yi * 1.6).toFixed(1)}s"><rect x="${gx - 44}" y="${y0 - 6}" width="44" height="${7 * step + 8}" fill="url(#trail)"/><rect x="${gx}" y="${y0 - 6}" width="2" height="${7 * step + 8}" fill="${SIGNAL}"/></g>`;
-    css = `.ph{animation:ph 7s linear infinite;opacity:0}@keyframes ph{0%{transform:translateX(0);opacity:1}88%{transform:translateX(${gw}px);opacity:1}90%,100%{transform:translateX(${gw}px);opacity:0}}`;
-  });
-  const defs = tex(4) + `<linearGradient id="trail"><stop offset="0" stop-color="${SIGNAL}" stop-opacity="0"/><stop offset="1" stop-color="${SIGNAL}" stop-opacity=".28"/></linearGradient>`;
-  return screen(H, D.svg + b, { css: D.css + css, defs, title: `contribution archive: ${fmt(d.allTime)} contributions since ${d.since}` });
-}
-
-// ── skyline: the last 12 months as an isometric city ───────────────────────
-function skyline(d) {
-  const W2 = W, H = 700, a = 16, b = 6.2, ox = 196, oy = 112, maxH = 230;
-  const end = Date.parse(d.today);
-  const start = end - 364 * 864e5 - new Date(end - 364 * 864e5).getUTCDay() * 864e5;
-  const days = d.past.filter(([dt]) => Date.parse(dt) >= start);
-  const counts = days.map(([, c]) => c).filter((c) => c > 0).sort((p, q) => p - q);
-  const q = (f) => counts[Math.floor(f * (counts.length - 1))] ?? 1;
-  const cut = [q(0.25), q(0.5), q(0.75)], max = Math.max(1, ...counts);
-  const TOP = ['#1c1c1c', '#4d4c48', '#7f7c74', '#b3ae9f', IVORY];
-  const shade = (c) => (c === 0 ? 0 : c <= cut[0] ? 1 : c <= cut[1] ? 2 : c <= cut[2] ? 3 : 4);
-  const dim = (hex, f) => '#' + hex.slice(1).match(/../g).map((x) => Math.round(parseInt(x, 16) * f).toString(16).padStart(2, '0')).join('');
-  const P = (c, r) => [ox + (c - r) * a + 7 * a, oy + (c + r) * b];
-  const boxes = days.map(([dt, c]) => {
-    const i = Math.round((Date.parse(dt) - start) / 864e5);
-    return { dt, c, col: Math.floor(i / 7), row: i % 7 };
-  }).sort((p, q) => p.col + p.row - (q.col + q.row) || p.col - q.col);
-  const g = 0.14;
-  let out = '';
-  for (const bx of boxes) {
-    const h = bx.c === 0 ? 1.5 : 4 + Math.pow(bx.c / max, 0.75) * maxH;
-    const isToday = bx.dt === d.today;
-    const top = isToday ? SIGNAL : TOP[shade(bx.c)];
-    const [c, r] = [bx.col + g, bx.row + g], s = 1 - 2 * g;
-    const A = P(c, r), B = P(c + s, r), C = P(c + s, r + s), Dd = P(c, r + s);
-    const up = ([x, y]) => `${x.toFixed(1)},${(y - h).toFixed(1)}`, at = ([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`;
-    out += `<g class="bd" style="animation-delay:${(bx.col * 0.035).toFixed(2)}s">`
-      + `<path d="M${at(B)}L${at(C)}L${up(C)}L${up(B)}Z" fill="${dim(top, 0.62)}"/>`
-      + `<path d="M${at(Dd)}L${at(C)}L${up(C)}L${up(Dd)}Z" fill="${dim(top, 0.42)}"/>`
-      + `<path d="M${up(A)}L${up(B)}L${up(C)}L${up(Dd)}Z" fill="${top}"${isToday ? ' class="cr"' : ''}/></g>`;
-  }
-  const total = days.reduce((s2, [, c]) => s2 + c, 0);
-  const peak = days.reduce((m, x) => (x[1] > m[1] ? x : m), ['', 0]);
-  let b2 = label('skyline', 48, 34);
-  b2 += text(`last 12 months . ${fmt(total)} contributions`, { f: '6x12', x: 48, y: 58, s: 2, fill: FROST });
-  b2 += label('peak day', 960, 120) + text(`${peak[0].replace(/-/g, '.')}  ${peak[1]} commits`, { f: '6x12', x: 960, y: 144, s: 2 });
-  b2 += label('busiest month', 960, 190);
-  const months = {};
-  for (const [dt, c] of days) months[dt.slice(0, 7)] = (months[dt.slice(0, 7)] || 0) + c;
-  const bm = Object.entries(months).sort((p, q2) => q2[1] - p[1])[0];
-  b2 += text(`${bm[0].replace('-', '.')}  ${fmt(bm[1])}`, { f: '6x12', x: 960, y: 214, s: 2 });
-  const D2 = dust(H, [{ n: 220, cy: 200, amp: 80, k: 1, ph: 2.4, th: 80, size: 1.6, op: 0.4, col: '#5a5a5a', dur: 120 }]);
-  const css = D2.css + `.bd{transform-box:fill-box;transform-origin:50% 100%;animation:rise 1.4s cubic-bezier(.2,.8,.2,1) both}@keyframes rise{from{transform:scaleY(0)}to{transform:scaleY(1)}}`;
-  return screen(H, D2.svg + `<g transform="translate(0,${maxH - 40})">${out}</g>` + b2, { css, title: `skyline: ${fmt(total)} contributions in the last 12 months` });
-}
-
-// ── tools ─────────────────────────────────────────────────────────────────
-function tools() {
-  const H = 230;
-  const icons = JSON.parse(fs.readFileSync(new URL('./icons.json', import.meta.url)));
-  const D = dust(H, [{ n: 140, cy: 120, amp: 30, k: 2, ph: 1, th: 40, size: 1.5, op: 0.4, col: '#5a5a5a', dur: 100 }]);
-  let b = label('tools', 48, 34);
-  const step = 86, x0 = (W - (TOOLS.length - 1) * step - 60) / 2;
-  TOOLS.forEach(([slug, name], i) => {
-    const x = x0 + i * step;
-    b += `<path class="ic" style="animation-delay:${(i * 0.18).toFixed(2)}s" d="${bitmapPath(icons[slug], { x, y: 80, s: 3 })}" fill="${IVORY}"/>`;
-    b += text(name, { f: '6x12', x: x + 30 - textWidth(name, { f: '6x12', s: 1.5 }) / 2, y: 160, s: 1.5, fill: FROST });
-  });
-  const css = D.css + `.ic{animation:ic 6s steps(1) infinite}@keyframes ic{0%,92%{opacity:1}94%{opacity:.35}96%{opacity:1}}`;
-  return screen(H, D.svg + b, { css, title: 'tools: ' + TOOLS.map((t) => t[1]).join(', ') });
-}
-
-// ── end of transmission ───────────────────────────────────────────────────
-function end(d) {
-  const H = 250;
-  const D = dust(H, [
-    { n: 260, cy: 130, amp: 50, k: 1, ph: 2, th: 50, size: 1.6, op: 0.6, col: FROST, dur: 70 },
-    { n: 60, cy: 110, amp: 60, k: 1, ph: 4, th: 60, size: 3.2, op: 0.5, col: DUST, dur: 280 },
-  ]);
-  let b = label('greetz', 48, 34);
-  b += text('claude . nebius . nvidia . siemens . every 3am hackathon crowd', { f: '8x16', x: 48, y: 64, s: 2 });
-  const eot = 'end of transmission';
-  b += text(eot, { f: '8x16', x: 48, y: 140, s: 2, fill: FROST });
-  b += `<rect class="cr" x="${48 + textWidth(eot, { f: '8x16', s: 2 }) + 10}" y="${140 + 12}" width="12" height="12" fill="${SIGNAL}"/>`;
-  b += text(`rebuilt ${d.today} by github actions from live data`, { f: '6x12', x: 48, y: 196, s: 1.5, track: 1, fill: '#6b6b6b' });
-  return screen(H, D.svg + b, { css: D.css, bottom: true, title: 'end of transmission' });
+  return screen(H, D.svg + b, { css: D.css, defs: tex(4), bottom: last, title: `${r.name}: ${r.line} ${r.line2}` });
 }
 
 const d = await loadData();
@@ -390,10 +211,5 @@ fs.mkdirSync(OUT, { recursive: true });
 const write = (f, s) => fs.writeFileSync(`${OUT}/${f}`, s);
 write('title.svg', hero(d));
 RELEASES.forEach((r, i) => write(`release-${r.id}.svg`, release(r, i)));
-write('signal.svg', signal(d));
-write('calendar.svg', calendar(d));
-write('skyline.svg', skyline(d));
 write('data.json', JSON.stringify({ allTime: d.allTime, year: d.year, streak: d.current, at: d.today }) + '\n');
-write('tools.svg', tools());
-write('end.svg', end(d));
 console.log(`built: week=${d.week} year=${d.year} allTime=${d.allTime} streak=${d.current} best=${d.best}`);

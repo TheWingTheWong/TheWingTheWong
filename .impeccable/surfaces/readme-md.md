@@ -18,9 +18,9 @@ THESIS: The profile is a demoscene intro: "thewingthewong presents", with the bu
 
 OWN-WORLD: void #000000, ash #1a1a1a, dust #4a4a4a, frost #7b7b7b, ivory #e6e2d6, and one signal amber #ffb000 used only for the caret and the active marker. Spleen bitmap glyphs rendered as pixel geometry at two scales. No boxes, rules, cards or badges. Depth is rank: brightness, letterspacing and drift rate.
 
-STORY: The visitor sees an intro credit, then the name, then a sine scroller carrying the builds. Below that come release rows they can click, a signal feed of real daily activity, the snake eating the real calendar, the 3D calendar, the tool list, and an end-of-transmission greetz.
+STORY: The visitor sees an intro credit, then the name, then a sine scroller carrying the builds. Below that come the release rows they can click, and the screen ends there. Short is the point.
 
-FIRST VIEWPORT: A 1280x720 void. Top left: "thewingthewong presents" in small ivory with a blinking amber caret. A two-line bitmap name, "ansorjon / juraev", at about 9x scale fills the left two-thirds, with an amber block as the full stop. The right column has small status lines (signal, streak, builds). Three dust fields drift at 1x, 1/2x and 1/4x. A full-width sine scroller across the bottom is the signature motion. The front plane never moves.
+FIRST VIEWPORT: A 1280x720 void. Top left: "thewingthewong presents" in small ivory with a blinking amber caret. A two-line bitmap name, "ansorjon / juraev", at about 9x scale fills the left two-thirds, with an amber block as the full stop. The right column has small status lines (signal, streak, builds). Three dust fields drift at 1x, 1/2x and 1/4x. The front plane never moves.
 
 FORM: Cracktro title screen (challenger operate-c-cracktro-scroller-queue, chosen by user), seed:ac68661b84407a5e
 

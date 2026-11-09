@@ -68,10 +68,8 @@ function card(L) {
 <title>${ALT}</title>
 <style>
 .shot{transform-origin:46% 52%;animation:settle 7s cubic-bezier(.16,1,.3,1) both}
-.credit{animation:credit 2.6s cubic-bezier(.16,1,.3,1) 2.2s both}
 @keyframes settle{from{transform:scale(1.045)}to{transform:none}}
-@keyframes credit{from{opacity:0}to{opacity:1}}
-@media (prefers-reduced-motion:reduce){.shot,.credit{animation:none}}
+@media (prefers-reduced-motion:reduce){.shot{animation:none}}
 </style>
 <defs>
 <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
@@ -87,7 +85,7 @@ ${[0, .15, .3, .45, .6, .75, .9, 1].map((t) => `<stop offset="${t}" stop-color="
 <g clip-path="url(#frame)"><image class="shot" width="${L.W}" height="${ph}" preserveAspectRatio="xMidYMid slice" href="data:image/jpeg;base64,${b64}" xlink:href="data:image/jpeg;base64,${b64}"/></g>
 <rect y="${(ph * f0).toFixed(1)}" width="${L.W}" height="${(ph * (f1 - f0) + 1).toFixed(1)}" fill="url(#fade)"/>
 <rect y="${Math.round(ph * f0)}" width="${L.W}" height="${H - Math.round(ph * f0)}" filter="url(#grain)" opacity=".05"/>
-<path class="credit" d="${d}" fill="${INK}"/>
+<path d="${d}" fill="${INK}"/>
 </svg>
 `;
 }

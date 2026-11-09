@@ -43,7 +43,7 @@ Open Sans Light only, outlined to paths (no live text, no font loading). It sits
 
 ## Motion
 
-One sequence, once: the shot settles from 104.5% to 100% over 7s, and the credit fades in at 2.2s over 2.6s, both with an exponential ease-out. Nothing loops. `prefers-reduced-motion` removes both.
+One move, once: the shot settles from 104.5% to 100% over 7s with an exponential ease-out. The credit line is always visible, never animated (user, 2026-11-09). Nothing loops. `prefers-reduced-motion` removes the settle.
 
 ## Rules
 

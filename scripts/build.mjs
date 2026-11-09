@@ -111,7 +111,7 @@ function row(L, wk, i) {
 
 fs.mkdirSync('assets', { recursive: true });
 for (const [suffix, L] of Object.entries(LAYOUTS)) {
-  fs.writeFileSync(`assets/title${suffix}.svg`, title(L));
+  fs.writeFileSync(`assets/intro${suffix}.svg`, title(L));
   WORKS.forEach((wk, i) => fs.writeFileSync(`assets/work-${wk.id}${suffix}.svg`, row(L, wk, i)));
 }
 console.log('built', Object.keys(LAYOUTS).length * (WORKS.length + 1), 'cards');

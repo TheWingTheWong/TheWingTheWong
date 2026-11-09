@@ -22,7 +22,7 @@ Ansorjon "vibe codes" with AI and treats that as licence to build anything: robo
 - A daily "pulse" workflow commits a random number of times per day so the contribution calendar is always green.
 
 ## Capabilities and Constraints
-Must keep: the title screen with one live stat (past-year contributions) and the project rows (FormzoAI, RAUM, AnyBuild, SWITCHYARD). Kept short on purpose (2026-11-09): no calendar, skyline, signal feed, tool strip or end screen, since GitHub already shows the contribution graph directly below.
+Must keep: the title screen (name and one-line intro, no stats or activity numbers) and the project rows (FormzoAI, RAUM, AnyBuild). Kept short on purpose (2026-11-09): no commit counts, streaks or "shipping daily" signals, no calendar, skyline, signal feed, tool strip or end screen, since GitHub already shows the contribution graph directly below.
 
 ## Brand Commitments
 - Name: Ansorjon Juraev, handle TheWingTheWong.

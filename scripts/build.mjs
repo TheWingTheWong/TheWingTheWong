@@ -24,12 +24,6 @@ const RELEASES = [
     line2: '1,024 browser simulations, writes the firmware.',
     tags: 'claude  .  3d  .  simulation', open: 'repo',
   },
-  {
-    id: 'switchyard', name: 'switchyard', status: 'shipped', kind: 'hackathon',
-    line: 'the ai procurement decision room. built at the',
-    line2: 'nebius x nvidia hackathon, siemens track.',
-    tags: 'agents  .  enterprise  .  typescript', open: 'repo',
-  },
 ];
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -38,7 +32,6 @@ const W = 1280;
 const OUT = 'assets';
 const TOKEN = process.env.GITHUB_TOKEN;
 if (!TOKEN) throw new Error('GITHUB_TOKEN missing');
-const pad = (n, w = 4) => String(n).padStart(w, '0');
 
 let seed = 20261107;
 const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
@@ -153,8 +146,6 @@ function hero(d) {
   let body = text(handle, { f: '8x16', x: 48, y: 36, s: 2 });
   body += `<rect class="cr" x="${48 + hw + 10}" y="${36 + 12}" width="12" height="12" fill="${SIGNAL}"/>`;
   body += label('presents', 48, 76);
-  const stamp = d.today.replace(/-/g, '.');
-  body += text(stamp, { f: '6x12', x: W - 48 - textWidth(stamp, { f: '6x12', s: 1.5, track: 2 }), y: 40, s: 1.5, track: 2, fill: FROST });
 
   // the name: front plane, never moves
   const s = 10, nx = 40, ny = 110;
@@ -165,16 +156,6 @@ function hero(d) {
   body += text('founder of formzoai. building ai that listens,', { f: '8x16', x: 48, y: 418, s: 2 });
   body += text('translates, designs robots and runs offline.', { f: '8x16', x: 48, y: 452, s: 2 });
 
-  // status column
-  const cx = 980;
-  body += label('signal', cx, 140);
-  body += text('shipping daily', { f: '6x12', x: cx, y: 164, s: 2 });
-  [4, 7, 10, 13].forEach((hgt, i) => { body += `<rect x="${cx + 186 + i * 6}" y="${186 - hgt}" width="4" height="${hgt}" fill="${IVORY}"/>`; });
-  body += label('past year', cx, 224);
-  body += `<path d="${glyphRun(String(d.year), cx, 240, 5)}" fill="url(#tx5)"/>`;
-  body += label('releases', cx, 336);
-  body += text(`${pad(RELEASES.length, 3)} below`, { f: '6x12', x: cx, y: 360, s: 2 });
-
   const css = D.css;
   return screen(H, D.svg + body, { css, defs: tex(10) + tex(5), top: true, title: 'thewingthewong presents ansor juraev' });
 }
@@ -183,10 +164,10 @@ function hero(d) {
 function release(r, i) {
   const first = i === 0;
   const last = i === RELEASES.length - 1;
-  const H = (first ? 236 : 176) + (last ? 28 : 0);
-  const y0 = first ? 60 : 0;
+  const H = (first ? 200 : 176) + (last ? 28 : 0);
+  const y0 = first ? 24 : 0;
   const D = dust(H, [{ n: 160, cy: H * 0.5, amp: 40, k: 1, ph: i * 1.7, th: 50, size: 1.6, op: 0.5, col: '#5a5a5a', dur: 90 }]);
-  let b = first ? label('releases', 48, 28) : '';
+  let b = '';
   b += text('>', { f: '8x16', x: 44, y: y0 + 8, s: 4, fill: r.live ? SIGNAL : FROST });
   b += `<path d="${glyphRun(r.name, 88, y0 + 8, 4)}" fill="url(#tx4)"/>`;
   b += text(r.line, { f: '6x12', x: 92, y: y0 + 80, s: 2, fill: '#b9b5a9' });

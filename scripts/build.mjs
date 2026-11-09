@@ -1,196 +1,117 @@
-// Builds the profile's cracktro-style SVG screens in assets/ from live GitHub data.
-// Usage: GITHUB_TOKEN=... node scripts/build.mjs
+// Builds the profile's SVG cards in assets/: a title card and one row per work,
+// each in a desktop size and a narrow phone size (README picks via <picture>).
+// Text is outlined to paths from Schibsted Grotesk so GitHub renders it exactly.
+// Static content, so this runs locally: npm install && node scripts/build.mjs
 import fs from 'node:fs';
-import { text, textWidth } from './bitmap.mjs';
+import { createRequire } from 'node:module';
+import opentype from 'opentype.js';
+
+const require = createRequire(import.meta.url);
+const face = (w) => opentype.loadSync(require.resolve(`@fontsource/schibsted-grotesk/files/schibsted-grotesk-latin-${w}-normal.woff`));
+const REG = face(400), MED = face(500), SEMI = face(600);
 
 // ── content (edit me) ─────────────────────────────────────────────────────
-const LOGIN = 'TheWingTheWong';
-const RELEASES = [
-  {
-    id: 'formzo', name: 'formzoai', live: true, status: 'live', kind: 'product',
-    line: 'describe a form in one sentence. ai writes it,',
-    line2: 'interviews people, then scores every answer.',
-    tags: 'ai  .  saas  .  typescript', open: 'formzo.ai',
-  },
-  {
-    id: 'raum', name: 'raum', status: 'open source', kind: 'on-device ai',
-    line: 'a private ai interpreter that lives in the room.',
-    line2: 'translates both ways, checks every number, forgets.',
-    tags: 'rust  .  python  .  whisper  .  gemma', open: 'repo',
-  },
-  {
-    id: 'anybuild', name: 'anybuild', status: 'shipped', kind: 'hackathon',
-    line: 'describe a robot. claude designs it in 3d, runs',
-    line2: '1,024 browser simulations, writes the firmware.',
-    tags: 'claude  .  3d  .  simulation', open: 'repo',
-  },
+const NAME = 'Ansor Juraev';
+const LEAD = 'Founder, FormzoAI.';
+const REST = 'I build AI that listens, translates and designs robots.';
+const WORKS = [
+  { id: 'formzo', name: 'FormzoAI', kind: 'Live product', link: 'formzo.ai', idea: 'Forms that interview people, then score every answer.' },
+  { id: 'raum', name: 'RAUM', kind: 'Open source', link: 'GitHub', idea: 'A private AI interpreter that lives in the room.' },
+  { id: 'anybuild', name: 'AnyBuild', kind: 'Hackathon', link: 'GitHub', idea: 'Describe a robot. Claude designs, simulates and codes it.' },
 ];
 // ──────────────────────────────────────────────────────────────────────────
 
-const VOID = '#000000', DUST = '#4a4a4a', FROST = '#8a8a8a', IVORY = '#e6e2d6', SIGNAL = '#ffb000';
-const W = 1280;
-const OUT = 'assets';
-const TOKEN = process.env.GITHUB_TOKEN;
-if (!TOKEN) throw new Error('GITHUB_TOKEN missing');
+const GROUND = '#121211', INK = '#EEECE6', STONE = '#A3A099', SLATE = '#8A8881';
 
-let seed = 20261107;
-const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
-const gauss = () => (rnd() + rnd() + rnd() - 1.5) / 1.5;
+// two layouts in canvas units. desktop shows at ~1.09x in GitHub's 830px column,
+// phone at ~0.9x in a ~343px column; sizes are picked so phone text stays >= 12px.
+const LAYOUTS = {
+  '': { W: 760, M: 48, R: 20, name: 96, bar: [56, 4, 30], ts: 30, lh: 40, gap: 74, ns: 34, ks: 18, ls: 20, aw: 13, is: 24, ilh: 32, rowTop: 46, ideaGap: 38, oneLine: true },
+  '-m': { W: 380, M: 24, R: 14, name: 48, bar: [32, 3, 18], ts: 19, lh: 26, gap: 44, ns: 23, ks: 14, ls: 14, aw: 10, is: 16, ilh: 22, rowTop: 34, ideaGap: 26, oneLine: false },
+};
 
-// ── data ──────────────────────────────────────────────────────────────────
-// retries transient failures (network errors, 5xx, rate limits) with exponential backoff
-async function gql(query, variables, attempts = 4) {
-  for (let i = 1; ; i++) {
-    try {
-      const res = await fetch('https://api.github.com/graphql', {
-        method: 'POST',
-        headers: { Authorization: `bearer ${TOKEN}`, 'Content-Type': 'application/json', 'User-Agent': 'profile-builder' },
-        body: JSON.stringify({ query, variables }),
-      });
-      if (res.status >= 500 || res.status === 403 || res.status === 429) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      if (json.errors) throw new Error(JSON.stringify(json.errors));
-      return json.data;
-    } catch (e) {
-      if (i >= attempts) throw e;
-      const wait = 1000 * 2 ** (i - 1);
-      console.log(`graphql: ${e.message}; retry ${i}/${attempts - 1} in ${wait}ms`);
-      await new Promise((r) => setTimeout(r, wait));
-    }
-  }
-}
-
-async function loadData() {
-  const { user: u } = await gql(`query($login:String!){ user(login:$login){ createdAt
-    repositories(ownerAffiliations:OWNER, privacy:PUBLIC, isFork:false){ totalCount }
-    contributionsCollection{ contributionCalendar{ totalContributions } } } }`, { login: LOGIN });
-  const days = new Map();
-  const years = [];
-  const y0 = new Date(u.createdAt).getUTCFullYear(), y1 = new Date().getUTCFullYear();
-  for (let y = y0; y <= y1; y++) {
-    const d = await gql(`query($login:String!,$from:DateTime!,$to:DateTime!){ user(login:$login){
-      contributionsCollection(from:$from,to:$to){ contributionCalendar{ totalContributions weeks{ contributionDays{ date weekday contributionCount contributionLevel } } } } } }`,
-      { login: LOGIN, from: `${y}-01-01T00:00:00Z`, to: `${y}-12-31T23:59:59Z` });
-    const cal = d.user.contributionsCollection.contributionCalendar;
-    years.push({ year: y, total: cal.totalContributions, weeks: cal.weeks });
-    for (const w of cal.weeks)
-      for (const day of w.contributionDays) days.set(day.date, day.contributionCount);
-  }
-  const today = new Date().toISOString().slice(0, 10);
-  const past = [...days.entries()].filter(([d]) => d <= today).sort(([a], [b]) => (a < b ? -1 : 1));
-  let best = 0, run = 0;
-  for (const [, c] of past) { run = c > 0 ? run + 1 : 0; best = Math.max(best, run); }
-  let current = 0, i = past.length - 1;
-  if (i >= 0 && past[i][1] === 0) i--;
-  for (; i >= 0 && past[i][1] > 0; i--) current++;
-  const last = (n, off = 0) => past.slice(past.length - n - off, past.length - off).reduce((a, [, c]) => a + c, 0);
-  return {
-    today, past, current, best,
-    year: u.contributionsCollection.contributionCalendar.totalContributions,
-    allTime: past.reduce((a, [, c]) => a + c, 0),
-    week: last(7), prevWeek: last(7, 7),
-    repos: u.repositories.totalCount, since: y0, years,
-  };
-}
-
-// ── shared pieces ─────────────────────────────────────────────────────────
-// ivory bitmap texture: each display pixel shows a hairline grid, like a lit dot-matrix cell
-const tex = (s) => `<pattern id="tx${s}" width="${s}" height="${s}" patternUnits="userSpaceOnUse"><rect width="${s}" height="${s}" fill="${IVORY}"/><rect x="${s - 1}" width="1" height="${s}" fill="#b4afa2"/><rect y="${s - 1}" width="${s}" height="1" fill="#b4afa2"/></pattern>`;
-
-// dust fields riding wave bands; rear fields drift, the rate halves per step forward
-function dust(h, bands) {
-  let css = '', out = '';
-  bands.forEach((b, li) => {
-    let dots = '';
-    for (let i = 0; i < b.n; i++) {
-      const x = rnd() * W;
-      const cy = b.cy + b.amp * Math.sin((x / W) * Math.PI * 2 * b.k + b.ph);
-      const y = cy + gauss() * b.th;
-      if (y < 0 || y > h) continue;
-      const s = b.size * (0.6 + rnd() * 0.8);
-      const o = (b.op * (0.35 + rnd() * 0.65)).toFixed(2);
-      dots += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${s.toFixed(1)}" height="${s.toFixed(1)}" fill-opacity="${o}"/>`;
-      dots += `<rect x="${(x + W).toFixed(1)}" y="${y.toFixed(1)}" width="${s.toFixed(1)}" height="${s.toFixed(1)}" fill-opacity="${o}"/>`;
-    }
-    css += `.dl${li}{animation:drift ${b.dur}s linear infinite}`;
-    out += `<g class="dl${li}" fill="${b.col}">${dots}</g>`;
+// lay out a string as one path: kerning on, tracking in em
+function run(font, str, x, y, size, track = 0) {
+  const glyphs = font.stringToGlyphs(str);
+  const scale = size / font.unitsPerEm;
+  let d = '', pen = x;
+  glyphs.forEach((g, i) => {
+    d += g.getPath(pen, y, size).toPathData(2);
+    pen += g.advanceWidth * scale + track * size;
+    if (i < glyphs.length - 1) pen += font.getKerningValue(g, glyphs[i + 1]) * scale;
   });
-  return { css: css + `@keyframes drift{to{transform:translateX(-${W}px)}}`, svg: out };
+  return { d, w: pen - x - track * size };
+}
+const width = (font, str, size, track = 0) => run(font, str, 0, 0, size, track).w;
+const path = (d, fill) => `<path d="${d}" fill="${fill}"/>`;
+
+// greedy wrap; pulls a word down rather than leave a single-word last line
+function wrap(font, str, size, max, firstIndent = 0) {
+  const lines = [];
+  let line = '', limit = max - firstIndent;
+  for (const word of str.split(' ')) {
+    const next = line ? `${line} ${word}` : word;
+    if (width(font, next, size) > limit && line) { lines.push(line); line = word; limit = max; } else line = next;
+  }
+  lines.push(line);
+  const n = lines.length;
+  if (n > 1 && !lines[n - 1].includes(' ')) {
+    const prev = lines[n - 2].split(' ');
+    if (prev.length > 2) { lines[n - 1] = `${prev.pop()} ${lines[n - 1]}`; lines[n - 2] = prev.join(' '); }
+  }
+  return lines;
 }
 
-const label = (str, x, y, fill = FROST) => text(str.toUpperCase(), { f: '6x12', x, y, s: 1.5, track: 2, fill });
-const glyphRun = (str, x, y, s) => text(str, { f: '8x16', x, y, s }).match(/d="([^"]+)"/)[1];
-const caretCss = `.cr{animation:cr 1.1s steps(1) infinite}@keyframes cr{50%{opacity:0}}`;
-
-function screen(h, body, { css = '', defs = '', top = false, bottom = false, title = '' } = {}) {
-  const r = 18, t = top ? r : 0, bt = bottom ? r : 0;
-  const shape = `M0 ${t}${top ? `Q0 0 ${r} 0` : ''}H${W - t}${top ? `Q${W} 0 ${W} ${r}` : ''}V${h - bt}${bottom ? `Q${W} ${h} ${W - r} ${h}` : ''}H${bt}${bottom ? `Q0 ${h} 0 ${h - r}` : ''}Z`;
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${h}" viewBox="0 0 ${W} ${h}" role="img"><title>${title}</title>
-<style>${caretCss}${css}@media (prefers-reduced-motion:reduce){*{animation:none!important}}</style>
-<defs><clipPath id="scr"><path d="${shape}"/></clipPath>${defs}</defs>
-<g clip-path="url(#scr)"><rect width="${W}" height="${h}" fill="${VOID}"/>${body}</g></svg>`;
+function card(L, h, body, { top = false, bottom = false, title, css = '' }) {
+  const { W, R } = L, t = top ? R : 0, b = bottom ? R : 0;
+  const shape = `M0 ${t}${top ? `Q0 0 ${R} 0` : ''}H${W - t}${top ? `Q${W} 0 ${W} ${R}` : ''}V${h - b}${bottom ? `Q${W} ${h} ${W - R} ${h}` : ''}H${b}${bottom ? `Q0 ${h} 0 ${h - R}` : ''}Z`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${h}" viewBox="0 0 ${W} ${h}" role="img"><title>${title}</title>${css ? `<style>${css}@media (prefers-reduced-motion:reduce){*{animation:none!important}}</style>` : ''}<path d="${shape}" fill="${GROUND}"/>${body}</svg>\n`;
 }
 
-// ── hero: the title screen ────────────────────────────────────────────────
-function hero(d) {
-  const H = 528;
-  const D = dust(H, [
-    { n: 900, cy: 270, amp: 100, k: 1, ph: 0.4, th: 44, size: 1.6, op: 0.7, col: FROST, dur: 70 },
-    { n: 380, cy: 400, amp: 60, k: 2, ph: 2.1, th: 30, size: 2.3, op: 0.55, col: '#6b6b6b', dur: 140 },
-    { n: 100, cy: 230, amp: 130, k: 1, ph: 3.6, th: 80, size: 3.4, op: 0.5, col: DUST, dur: 280 },
-  ]);
+// ── title card ────────────────────────────────────────────────────────────
+function title(L) {
+  const { W, M } = L;
+  let size = L.name;
+  while (width(SEMI, NAME, size, -0.03) > W - 2 * M) size -= 1;
+  const nameY = M + Math.round(size * 0.92);
+  let b = path(run(SEMI, NAME, M - size * 0.03, nameY, size, -0.03).d, INK);
+  const [bw, bh, boff] = L.bar, barY = nameY + boff;
+  // the one authored moment: a short bar that draws in under the name, once
+  b += `<rect class="bar" x="${M}" y="${barY}" width="${bw}" height="${bh}" fill="${INK}"/>`;
 
-  // credit line
-  const handle = 'thewingthewong';
-  const hw = textWidth(handle, { f: '8x16', s: 2 });
-  let body = text(handle, { f: '8x16', x: 48, y: 36, s: 2 });
-  body += `<rect class="cr" x="${48 + hw + 10}" y="${36 + 12}" width="12" height="12" fill="${SIGNAL}"/>`;
-  body += label('presents', 48, 76);
-
-  // the name: front plane, never moves
-  const s = 10, nx = 40, ny = 110;
-  body += `<path d="${glyphRun('ansor', nx, ny, s)}" fill="url(#tx10)"/>`;
-  body += `<path d="${glyphRun('juraev', nx, ny + 13 * s, s)}" fill="url(#tx10)"/>`;
-  const jw = textWidth('juraev', { f: '8x16', s });
-  body += `<rect class="cr" x="${nx + jw + s}" y="${ny + 13 * s + 9 * s}" width="${2 * s}" height="${3 * s}" fill="${SIGNAL}"/>`;
-  body += text('founder of formzoai. building ai that listens,', { f: '8x16', x: 48, y: 418, s: 2 });
-  body += text('translates, designs robots and runs offline.', { f: '8x16', x: 48, y: 452, s: 2 });
-
-  const css = D.css;
-  return screen(H, D.svg + body, { css, defs: tex(10) + tex(5), top: true, title: 'thewingthewong presents ansor juraev' });
+  const textY = barY + L.gap;
+  const leadW = width(REG, LEAD, L.ts), space = width(REG, ' ', L.ts);
+  b += path(run(REG, LEAD, M, textY, L.ts).d, INK);
+  const lines = wrap(REG, REST, L.ts, W - 2 * M, leadW + space);
+  lines.forEach((ln, i) => { b += path(run(REG, ln, i === 0 ? M + leadW + space : M, textY + i * L.lh, L.ts).d, STONE); });
+  const h = Math.round(textY + (lines.length - 1) * L.lh + L.lh * 1.6);
+  const css = `.bar{transform-origin:${M}px 0;animation:draw .9s cubic-bezier(.16,1,.3,1) .2s both}@keyframes draw{from{transform:scaleX(0)}}`;
+  return card(L, h, b, { top: true, css, title: `${NAME}. ${LEAD} ${REST}` });
 }
 
-// ── release rows ──────────────────────────────────────────────────────────
-function release(r, i) {
-  const first = i === 0;
-  const last = i === RELEASES.length - 1;
-  const H = (first ? 200 : 176) + (last ? 28 : 0);
-  const y0 = first ? 24 : 0;
-  const D = dust(H, [{ n: 160, cy: H * 0.5, amp: 40, k: 1, ph: i * 1.7, th: 50, size: 1.6, op: 0.5, col: '#5a5a5a', dur: 90 }]);
-  let b = '';
-  b += text('>', { f: '8x16', x: 44, y: y0 + 8, s: 4, fill: r.live ? SIGNAL : FROST });
-  b += `<path d="${glyphRun(r.name, 88, y0 + 8, 4)}" fill="url(#tx4)"/>`;
-  b += text(r.line, { f: '6x12', x: 92, y: y0 + 80, s: 2, fill: '#b9b5a9' });
-  b += text(r.line2, { f: '6x12', x: 92, y: y0 + 108, s: 2, fill: '#b9b5a9' });
-  b += text(r.tags, { f: '6x12', x: 92, y: y0 + 144, s: 1.5, track: 1, fill: FROST });
-  const col = (lx, k, v, live) => label(k, lx, y0 + 26) + text(v, { f: '6x12', x: lx, y: y0 + 50, s: 2, fill: live ? SIGNAL : IVORY });
-  b += col(800, 'status', r.status, r.live) + col(950, 'kind', r.kind);
-  b += label('open', 1110, y0 + 26) + text(`${r.open} >`, { f: '6x12', x: 1110, y: y0 + 50, s: 2 });
-  return screen(H, D.svg + b, { css: D.css, defs: tex(4), bottom: last, title: `${r.name}: ${r.line} ${r.line2}` });
+// ── work rows ─────────────────────────────────────────────────────────────
+// north-east arrow, drawn: a diagonal and a corner
+const arrow = (x, y, s, sw) => `<path d="M${x} ${y + s}L${x + s} ${y}M${x + s * 0.3} ${y}H${x + s}V${y + s * 0.7}" fill="none" stroke="${INK}" stroke-width="${sw}"/>`;
+
+function row(L, wk, i) {
+  const { W, M } = L, last = i === WORKS.length - 1;
+  const nameY = L.rowTop;
+  const nm = run(MED, wk.name, M - 1, nameY, L.ns, -0.01);
+  let b = path(nm.d, INK);
+  b += path(run(REG, wk.kind, M + nm.w + L.ns * 0.4, nameY, L.ks).d, SLATE);
+  const lw = width(REG, wk.link, L.ls);
+  b += path(run(REG, wk.link, W - M - L.aw - L.aw * 0.8 - lw, nameY, L.ls).d, INK);
+  b += arrow(W - M - L.aw, nameY - L.aw * 1.08, L.aw, L.aw * 0.17);
+  const ideaLines = wrap(REG, wk.idea, L.is, W - 2 * M);
+  if (L.oneLine && ideaLines.length > 1) throw new Error(`${wk.name}: idea is too long for one line, shorten it`);
+  ideaLines.forEach((ln, k) => { b += path(run(REG, ln, M, nameY + L.ideaGap + k * L.ilh, L.is).d, STONE); });
+  const h = Math.round(nameY + L.ideaGap + (ideaLines.length - 1) * L.ilh + (last ? L.M + L.ilh * 0.6 : L.ilh * 1.3));
+  return card(L, h, b, { bottom: last, title: `${wk.name}, ${wk.kind.toLowerCase()}: ${wk.idea}` });
 }
 
-const d = await loadData();
-// guard: GitHub briefly reports far fewer contributions while it recounts a big push;
-// keep the last good screens instead of publishing an empty archive
-const SNAP = `${OUT}/data.json`;
-const prev = fs.existsSync(SNAP) ? JSON.parse(fs.readFileSync(SNAP, 'utf8')) : null;
-if (prev && d.allTime < prev.allTime * 0.6) {
-  console.log(`guard: ${d.allTime} contributions vs ${prev.allTime} last time; keeping previous screens`);
-  process.exit(0);
+fs.mkdirSync('assets', { recursive: true });
+for (const [suffix, L] of Object.entries(LAYOUTS)) {
+  fs.writeFileSync(`assets/title${suffix}.svg`, title(L));
+  WORKS.forEach((wk, i) => fs.writeFileSync(`assets/work-${wk.id}${suffix}.svg`, row(L, wk, i)));
 }
-fs.mkdirSync(OUT, { recursive: true });
-const write = (f, s) => fs.writeFileSync(`${OUT}/${f}`, s);
-write('title.svg', hero(d));
-RELEASES.forEach((r, i) => write(`release-${r.id}.svg`, release(r, i)));
-write('data.json', JSON.stringify({ allTime: d.allTime, year: d.year, streak: d.current, at: d.today }) + '\n');
-console.log(`built: week=${d.week} year=${d.year} allTime=${d.allTime} streak=${d.current} best=${d.best}`);
+console.log('built', Object.keys(LAYOUTS).length * (WORKS.length + 1), 'cards');
